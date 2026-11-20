@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SESI 2027 • Plataforma de Estudos</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--ink:#182238;--muted:#667085;--blue:#4263eb;--green:#16a36a;--gold:#f0ad32;--line:#e6eaf2;--soft:#eef2ff;--bad:#d9485f}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,-apple-system,Segoe UI,sans-serif}
+header{background:linear-gradient(120deg,#263b8f,#536df0);color:white;padding:24px max(18px,calc((100% - 1050px)/2));}
+header h1{margin:0;font-size:clamp(24px,4vw,34px)}header p{margin:5px 0 0;color:#e3e8ff}
+main{max-width:1050px;margin:22px auto;padding:0 16px 50px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.stat,.panel,.topic,.quiz,.result{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 4px 18px #1c2b4a08}
+.stat strong{display:block;font-size:25px}.stat span,.muted{color:var(--muted);font-size:13px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.tab,button{border:0;border-radius:10px;padding:10px 14px;font:inherit;font-weight:650;cursor:pointer}
+.tab{background:#e9edf7;color:#3d4962}.tab.active{background:var(--blue);color:white}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:12px}
+.topic{display:flex;flex-direction:column;gap:9px}.topic h3{font-size:16px;margin:0}.topic .meta{font-size:12px;color:var(--muted)}
+.progress{height:8px;background:#edf0f6;border-radius:20px;overflow:hidden}.progress i{display:block;height:100%;background:var(--green);width:0}
+.topic button,.primary{background:var(--blue);color:white}.topic button{margin-top:auto}.secondary{background:#edf0f6;color:#344054}
+button:disabled{opacity:.45;cursor:not-allowed}
+.panel h2{margin:0 0 6px}.barline{height:9px;background:#e9edf5;border-radius:20px;overflow:hidden;margin:12px 0}.barline div{height:100%;background:var(--gold);width:0;transition:width .2s}
+.quiz{max-width:760px;margin:20px auto}.quiztop{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:13px}.question{font-size:20px;font-weight:750;margin:24px 0 18px}
+.options{display:grid;gap:10px}.option{width:100%;text-align:left;background:white;border:2px solid var(--line);color:var(--ink);padding:13px 14px;border-radius:12px}.option:hover{border-color:#9aaaf7}.option.correct{border-color:var(--green);background:#eaf8f1}.option.wrong{border-color:var(--bad);background:#fff0f2}
+.feedback{padding:14px;border-radius:12px;margin-top:14px;background:#f1f5ff}.feedback.good{background:#eaf8f1}.feedback.bad{background:#fff0f2}.actions{display:flex;gap:10px;justify-content:space-between;margin-top:18px;flex-wrap:wrap}
+.hidden{display:none!important}.pill{display:inline-block;background:#eef2ff;color:#4256b8;padding:3px 9px;border-radius:30px;font-size:12px;font-weight:700}
+footer{text-align:center;color:var(--muted);font-size:12px;margin-top:28px}
+@media(max-width:650px){.stats{grid-template-columns:repeat(2,1fr)}header{padding:20px 16px}.question{font-size:18px}}
+</style>
+</head>
+<body>
+<header><h1>SESI 2027 • Plataforma de Estudos</h1><p>Aprenda um assunto por vez. Responda, revise e acompanhe sua evolução.</p></header>
+<main>
+<section class="stats">
+ <div class="stat"><strong id="xp">0</strong><span>XP conquistados</span></div>
+ <div class="stat"><strong id="done">0/30</strong><span>Assuntos concluídos</span></div>
+ <div class="stat"><strong id="answered">0</strong><span>Questões respondidas</span></div>
+ <div class="stat"><strong id="accuracy">—</strong><span>Taxa de acertos</span></div>
+</section>
+<section id="home">
+ <div class="panel"><h2>Seu mapa de estudos</h2><p class="muted">São 30 assuntos, com 10 questões em cada unidade. Em Matemática, você também resolverá cálculos e problemas passo a passo.</p><div class="barline"><div id="overall"></div></div><div class="muted" id="overallText">0 de 300 questões respondidas</div><div style="margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="primary" id="startMock">Fazer simulado • 45 questões</button><span class="muted">15 de Português + 15 de Matemática + 15 de Atualidades</span></div></div>
+ <nav class="tabs"><button class="tab active" data-filter="Todos">Todos</button><button class="tab" data-filter="Português">Português</button><button class="tab" data-filter="Matemática">Matemática</button><button class="tab" data-filter="Atualidades">Atualidades</button></nav>
+ <div id="topics" class="grid"></div>
+</section>
+<section id="study" class="hidden">
+ <div class="quiz">
+  <div class="quiztop"><span id="subjectLabel"></span><span id="counter"></span></div>
+  <div class="barline"><div id="lessonProgress"></div></div>
+  <div class="pill" id="topicLabel"></div>
+  <div class="question" id="question"></div>
+  <div class="options" id="options"></div>
+  <div id="feedback" class="feedback hidden"></div>
+  <div class="actions"><button class="secondary" id="quit">Voltar ao mapa</button><button class="primary" id="next" disabled>Continuar</button></div>
+ </div>
+</section>
+<section id="finish" class="hidden">
+ <div class="result" style="max-width:700px;margin:20px auto;text-align:center">
+  <div style="font-size:46px"></div><h2>Unidade concluída!</h2><p id="resultText"></p><p class="muted" id="resultDetail"></p>
+  <div class="actions" style="justify-content:center"><button class="secondary" id="review">Refazer unidade</button><button class="primary" id="backHome">Voltar ao mapa</button></div>
+ </div>
+</section>
+<footer>SESI 2027 Study Quest • Seu progresso fica salvo neste navegador.</footer>
+</main>
+<script>
+const raw = [
+["Português","Funções da linguagem",[
+["Referencial","transmite informação objetiva sobre um assunto","Uma notícia informa a quantidade de chuva registrada."],
+["Emotiva","destaca sentimentos e opiniões do emissor","'Estou muito feliz com o resultado!'"],
+["Conativa","busca influenciar o comportamento do receptor","'Faça sua inscrição hoje!'"],
+["Fática","estabelece, testa ou mantém o canal de comunicação","'Alô, está me ouvindo?'"]]],
+["Português","Figuras de linguagem",[
+["Metáfora","aproxima ideias sem usar conectivo comparativo","'Aquela menina é uma estrela.'"],
+["Comparação","aproxima elementos usando termos como 'como' ou 'tal qual'","'Forte como um leão.'"],
+["Personificação","atribui ações ou características humanas a seres não humanos","'O vento sussurrava.'"],
+["Hipérbole","usa exagero intencional para dar ênfase","'Esperei uma eternidade.'"]]],
+["Português","Aposto e vocativo",[
+["Aposto","explica, resume, enumera ou especifica outro termo","'Machado de Assis, grande escritor brasileiro, nasceu no Rio.'"],
+["Vocativo","chama ou interpela o interlocutor","'Pedro, venha aqui.'"],
+["Aposto explicativo","acrescenta uma explicação e costuma vir isolado por vírgulas","'Salvador, capital da Bahia, é uma cidade histórica.'"],
+["Vocativo isolado","deve ser separado por vírgula(s)","'Bom dia, professora!'"]]],
+["Português","Classes de palavras",[
+["Substantivo","nomeia seres, lugares, sentimentos e ideias","casa, Brasil, alegria"],
+["Adjetivo","caracteriza ou atribui qualidade ao substantivo","menino estudioso"],
+["Verbo","indica ação, estado, fenômeno ou processo","correr, ser, chover"],
+["Advérbio","modifica verbo, adjetivo ou outro advérbio, indicando circunstância","chegou cedo"]]],
+["Português","Frase, oração e período",[
+["Frase","enunciado com sentido completo, com ou sem verbo","'Que ótimo!'"],
+["Oração","enunciado organizado em torno de um verbo ou locução verbal","'Os alunos estudaram.'"],
+["Período simples","período formado por uma única oração","'A turma venceu.'"],
+["Período composto","período formado por duas ou mais orações","'A turma estudou e venceu.'"]]],
+["Português","Coordenação e subordinação",[
+["Coordenação","liga orações sintaticamente independentes","'Estudei, mas fiquei cansado.'"],
+["Subordinação","liga uma oração que exerce função sintática em outra","'Espero que você venha.'"],
+["Conjunção aditiva","indica soma de ideias, como 'e' e 'nem'","'Leu e anotou.'"],
+["Conjunção adversativa","indica oposição, como 'mas', 'porém' e 'contudo'","'Estudou, porém errou.'"]]],
+["Português","Tempos e modos verbais",[
+["Indicativo","apresenta fato como certo ou considerado real","'Ela estuda todos os dias.'"],
+["Subjuntivo","expressa hipótese, desejo, dúvida ou possibilidade","'Espero que ela estude.'"],
+["Imperativo","expressa ordem, pedido, conselho ou instrução","'Leia o enunciado.'"],
+["Pretérito perfeito","indica ação concluída no passado","'Ontem, revisei a matéria.'"]]],
+["Português","Tipos textuais",[
+["Narração","apresenta acontecimentos com personagens, tempo e espaço","um relato de uma viagem"],
+["Descrição","caracteriza pessoas, objetos, lugares ou situações","um parágrafo que detalha uma paisagem"],
+["Exposição","explica ou apresenta informações sobre um tema","um texto didático sobre fotossíntese"],
+["Argumentação","defende uma ideia por meio de razões e evidências","um texto que sustenta uma opinião"]]],
+["Português","Gêneros textuais",[
+["Notícia","informa fatos de interesse público com linguagem geralmente objetiva","publicação de um acontecimento em portal jornalístico"],
+["Crônica","aborda situações cotidianas com olhar reflexivo, crítico ou humorístico","texto sobre uma cena observada no ônibus"],
+["Tutorial","ensina a realizar uma tarefa em etapas","passo a passo para editar uma imagem"],
+["Artigo de opinião","defende um ponto de vista sobre tema debatido","texto argumentativo publicado em jornal"]]],
+["Matemática","Potenciação e propriedades",[
+["Potência","representa multiplicações de fatores iguais","2⁴ = 2 × 2 × 2 × 2 = 16"],
+["Produto de potências de mesma base","conserva a base e soma os expoentes","a² · a³ = a⁵"],
+["Quociente de potências de mesma base","conserva a base e subtrai os expoentes, com base não nula","a⁵ ÷ a² = a³"],
+["Potência de potência","conserva a base e multiplica os expoentes","(a²)³ = a⁶"]]],
+["Matemática","Conjuntos numéricos: naturais, inteiros e racionais",[
+["Naturais (ℕ)","incluem números usados para contagem; nesta convenção, incluem o zero","0, 1, 2, 3..."],
+["Inteiros (ℤ)","incluem naturais, seus opostos negativos e o zero","..., −2, −1, 0, 1, 2..."],
+["Racionais (ℚ)","podem ser escritos como fração de inteiros, com denominador não nulo","1/2, −3, 0,75"],
+["Decimal periódico","é racional, pois pode ser representado por fração","0,333... = 1/3"]]],
+["Matemática","Teoria dos conjuntos",[
+["Pertinência (∈)","indica que um elemento pertence a um conjunto","3 ∈ {1, 2, 3}"],
+["Subconjunto (⊂)","indica que todos os elementos de um conjunto estão em outro","{1,2} ⊂ {1,2,3}"],
+["Conjunto vazio (∅)","é o conjunto que não possui elementos","conjunto dos meses com 32 dias"],
+["Diagrama de Venn","representa conjuntos por regiões, geralmente círculos","círculos sobrepostos mostram elementos comuns"]]],
+["Matemática","Números reais",[
+["Reais (ℝ)","reúnem os racionais e os irracionais","−2, 1/3, √2 e π"],
+["Irracionais","não podem ser escritos como fração de dois inteiros e têm decimal infinito não periódico","√2 e π"],
+["Reta real","representa cada número real por um ponto","−1 fica à esquerda do zero"],
+["Inclusão numérica","todo racional é real, mas nem todo real é racional","√3 é real e irracional"]]],
+["Matemática","MDC por subtrações sucessivas",[
+["MDC","é o maior número que divide dois ou mais números sem deixar resto","MDC(12, 18) = 6"],
+["Subtração sucessiva","subtrai-se o menor número do maior até obter valores iguais","18 − 12 = 6; 12 − 6 = 6"],
+["Divisor comum","divide todos os números considerados exatamente","6 divide 12 e 18"],
+["Aplicação do MDC","ajuda a dividir quantidades em grupos iguais tão grandes quanto possível","separar 24 e 36 itens em grupos iguais"]]],
+["Matemática","Razão e proporção",[
+["Razão","é a comparação entre duas grandezas por uma divisão","2 para 3 = 2/3"],
+["Proporção","é a igualdade entre duas razões","2/3 = 4/6"],
+["Propriedade fundamental","em a/b = c/d, vale a · d = b · c, com denominadores não nulos","2/3 = 4/6, pois 2·6 = 3·4"],
+["Escala","compara medida no desenho com medida real, na mesma unidade","1:100 significa 1 cm para 100 cm"]]],
+["Matemática","Regra de três composta",[
+["Grandezas diretamente proporcionais","aumentam ou diminuem juntas na mesma razão","mais itens, no mesmo ritmo, exigem mais tempo"],
+["Grandezas inversamente proporcionais","quando uma aumenta, a outra diminui na mesma razão","mais trabalhadores podem reduzir o tempo da tarefa"],
+["Regra de três composta","relaciona três ou mais grandezas para encontrar um valor desconhecido","comparar trabalhadores, horas e produção"],
+["Análise das relações","antes de calcular, identifica-se se cada grandeza é direta ou inversa em relação à incógnita","mais máquinas, mesmo período, geralmente produzem mais"]]],
+["Matemática","Operações com radicais",[
+["Simplificação de radical","retira fatores que formam potências perfeitas","√12 = √(4·3) = 2√3"],
+["Produto de radicais","multiplica-se os radicandos quando os índices são iguais","√2 · √8 = √16 = 4"],
+["Quociente de radicais","divide-se os radicandos quando os índices são iguais e o divisor é válido","√18/√2 = √9 = 3"],
+["Soma de radicais semelhantes","somam-se os coeficientes e conserva-se o radical","2√3 + 5√3 = 7√3"]]],
+["Matemática","Familiarização com função",[
+["Função","associa cada elemento do domínio a exatamente um elemento do contradomínio","cada pessoa recebe uma única data de nascimento"],
+["Domínio","é o conjunto dos valores de entrada permitidos","valores possíveis de x"],
+["Contradomínio","é o conjunto de chegada previsto para a função","conjunto no qual os resultados estão definidos"],
+["Imagem","é o conjunto dos resultados que a função realmente assume","valores de y efetivamente obtidos"]]],
+["Matemática","Noções de função",[
+["Variável independente","é a entrada, geralmente representada por x","em f(x)=2x+1, escolhe-se x"],
+["Variável dependente","é o resultado que depende da entrada, geralmente y","em y=2x+1, y depende de x"],
+["Lei de formação","é a regra que relaciona entrada e saída","f(x)=3x"],
+["Par ordenado","representa um ponto ou associação na forma (x,y)","(2,5) indica entrada 2 e saída 5"]]],
+["Matemática","Frações algébricas",[
+["Fração algébrica","é uma fração que contém expressões algébricas","(x+1)/(x−2)"],
+["Restrição do denominador","o denominador não pode ser zero","em 1/(x−3), x ≠ 3"],
+["Simplificação","fatora-se e cancelam-se fatores comuns, respeitando restrições","(x²−1)/(x−1) = x+1, com x ≠ 1"],
+["Fatoração","reescreve uma expressão como produto de fatores","x²−9 = (x−3)(x+3)"]]],
+["Matemática","MMC de expressões algébricas",[
+["MMC","é o menor múltiplo comum positivo entre números ou expressões compatíveis","MMC(4,6)=12"],
+["Fatoração em fatores","decompõe expressões para identificar fatores","x²−4 = (x−2)(x+2)"],
+["Maior expoente","no MMC, cada fator aparece com seu maior expoente","MMC de x² e x³ é x³"],
+["Denominador comum","o MMC pode ser usado para somar ou subtrair frações algébricas","obter denominador comum antes de somar"]]],
+["Matemática","Função polinomial do 1º grau e gráfico",[
+["Função afim","tem forma f(x)=ax+b, com a e b reais e a diferente de zero","f(x)=2x+3"],
+["Coeficiente angular (a)","determina a inclinação e o sentido da reta","a positivo indica função crescente"],
+["Coeficiente linear (b)","indica onde a reta intercepta o eixo y","em y=2x+3, cruza y em 3"],
+["Gráfico da função afim","é uma linha reta e pode ser construído com dois pontos distintos","calcular y para dois valores de x"]]],
+["Atualidades","Globalização e comunicação no século XXI",[
+["Globalização","intensifica conexões econômicas, culturais, políticas e tecnológicas entre países","um produto é projetado em um país e fabricado em outros"],
+["Fluxo de informações","a internet acelera a circulação de notícias e conteúdos","uma notícia se espalha por redes sociais em minutos"],
+["Inclusão digital","envolve acesso à internet, dispositivos e habilidades para utilizá-los","oferta de conexão e formação digital em escolas"],
+["Desinformação","conteúdo falso ou enganoso pode circular rapidamente","boato compartilhado sem verificação"]]],
+["Atualidades","Devastação ambiental e o futuro do Brasil",[
+["Desmatamento","retirada da vegetação nativa, com impactos sobre habitats e clima","perda de floresta para expansão irregular"],
+["Biodiversidade","variedade de seres vivos, genes e ecossistemas","espécies da Amazônia e do Cerrado"],
+["Queimadas","podem ocorrer naturalmente, mas incêndios provocados agravam danos ambientais","fogo destrói habitats e piora a qualidade do ar"],
+["Desenvolvimento sustentável","busca atender necessidades atuais sem comprometer as futuras gerações","produção com conservação de recursos"]]],
+["Atualidades","Globalização capitalista, desigualdade social e pandemia",[
+["Capitalismo globalizado","integra mercados, empresas, investimentos e cadeias produtivas em escala mundial","uma crise em um país afeta fornecedores em outros"],
+["Desigualdade social","distribuição desigual de renda, oportunidades e acesso a serviços","diferenças no acesso à educação e saúde"],
+["Vulnerabilidade social","condições de vida podem ampliar a exposição a crises","trabalhadores informais com menor proteção econômica"],
+["Desigualdade na pandemia","impactos foram diferentes conforme renda, moradia, trabalho e acesso à saúde","possibilidade desigual de trabalhar remotamente"]]],
+["Atualidades","Racismo e machismo",[
+["Racismo","discriminação ou hierarquização baseada em raça ou cor, com efeitos individuais e estruturais","barreira discriminatória no acesso ao emprego"],
+["Racismo estrutural","desigualdades raciais reproduzidas por práticas e instituições ao longo do tempo","diferenças persistentes de oportunidades"],
+["Machismo","ideias e práticas que sustentam desigualdade e superioridade masculina","desvalorizar a capacidade de uma mulher por ser mulher"],
+["Equidade","considera desigualdades existentes para promover oportunidades justas","políticas que enfrentam barreiras históricas"]]],
+["Atualidades","Energias renováveis e futuro do planeta",[
+["Energia solar","aproveita a radiação do Sol para gerar calor ou eletricidade","painéis fotovoltaicos"],
+["Energia eólica","usa a força dos ventos para movimentar turbinas","parques eólicos"],
+["Hidrelétrica","gera eletricidade usando a energia da água em movimento","usina em um rio"],
+["Biomassa","usa matéria orgânica como fonte energética","bagaço da cana utilizado para gerar energia"]]],
+["Atualidades","Ascensão totalitária: governos extremistas no século XX",[
+["Totalitarismo","regime que busca amplo controle político, social e cultural da sociedade","controle estatal e repressão à oposição"],
+["Nazismo","regime totalitário alemão liderado por Hitler, marcado por racismo e antissemitismo","Alemanha nazista a partir de 1933"],
+["Fascismo","movimento autoritário e ultranacionalista que chegou ao poder na Itália com Mussolini","Itália fascista"],
+["Propaganda e censura","mecanismos usados por regimes para controlar informações e influenciar a população","perseguição à imprensa independente"]]],
+["Atualidades","Inteligência artificial e futuro do emprego",[
+["Inteligência artificial","conjunto de tecnologias capazes de executar tarefas que envolvem padrões, previsões ou linguagem","sistema que reconhece voz"],
+["Automação","uso de tecnologia para executar tarefas com menor intervenção humana","robôs em linhas de produção"],
+["Requalificação profissional","aprendizagem de novas habilidades para acompanhar mudanças no trabalho","curso de análise de dados"],
+["Ética em IA","envolve privacidade, transparência, segurança e redução de vieses","avaliar se um sistema discrimina grupos"]]],
+["Atualidades","Intolerância religiosa e convívio com as diferenças",[
+["Liberdade religiosa","direito de ter, mudar ou não ter religião e manifestar crenças dentro da lei","respeitar alguém que segue outra fé"],
+["Intolerância religiosa","hostilidade, discriminação ou violência motivada por crença ou ausência dela","impedir alguém de praticar sua religião"],
+["Laicidade do Estado","Estado não adota religião oficial e deve tratar crenças com imparcialidade","serviços públicos sem favorecimento religioso"],
+["Pluralismo","reconhecimento da diversidade de crenças e visões de mundo","convivência respeitosa entre diferentes religiões"]]]
+];
+
+const bank = raw.map((r,idx)=>({id:idx,subject:r[0],title:r[1],facts:r[2]}));
+let filter="Todos", current=null, qIndex=0, score=0, hits=0, answered=0, selected=false, sessionHits=0;
+let simMode=false, simQuestions=[], simBreakdown={};
+const storageKey="sesi2027-studyquest-v1";
+let progress=JSON.parse(localStorage.getItem(storageKey)||"{}");
+function save(){localStorage.setItem(storageKey,JSON.stringify(progress));}
+function stats(){
+ const entries=Object.values(progress);let total=entries.reduce((a,b)=>a+(b.answered||0),0),correct=entries.reduce((a,b)=>a+(b.correct||0),0),xp=entries.reduce((a,b)=>a+(b.xp||0),0),done=entries.filter(x=>x.completed).length;
+ document.getElementById("xp").textContent=xp;document.getElementById("done").textContent=done+"/30";document.getElementById("answered").textContent=total;document.getElementById("accuracy").textContent=total?Math.round(correct/total*100)+"%":"—";
+ document.getElementById("overall").style.width=(total/300*100)+"%";document.getElementById("overallText").textContent=total+" de 300 questões respondidas";
+}
+function renderTopics(){
+ const root=document.getElementById("topics");root.innerHTML="";
+ bank.filter(x=>filter==="Todos"||x.subject===filter).forEach(t=>{
+  const p=progress[t.id]||{answered:0,correct:0,completed:false};let pct=p.answered/10*100;
+  const el=document.createElement("article");el.className="topic";
+  el.innerHTML=`<div class="meta">${t.subject} • 10 questões</div><h3>${t.title}</h3><div class="progress"><i style="width:${pct}%"></i></div><div class="meta">${p.completed?"✓ Concluído":p.answered+"/10 respondidas"}${p.answered? " • "+Math.round(p.correct/p.answered*100)+"% de acerto":""}</div><button>${p.completed?"Revisar unidade":"Começar unidade"}</button>`;
+  el.querySelector("button").onclick=()=>start(t.id);root.appendChild(el);
+ });
+}
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{filter=b.dataset.filter;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));renderTopics()});
+function show(id){["home","study","finish"].forEach(x=>document.getElementById(x).classList.toggle("hidden",x!==id));}
+function start(id){current=bank[id];qIndex=0;score=0;sessionHits=0;selected=false;show("study");renderQuestion();}
+const mathExercises = {"9":[["Calcule 2⁵.","32",["10","16","25"],"2⁵ = 2 × 2 × 2 × 2 × 2 = 32."],["Calcule 3² + 4².","25",["14","49","13"],"3² + 4² = 9 + 16 = 25."],["Simplifique 5³ × 5².","5⁵",["5⁶","5¹","25⁵"],"Na multiplicação de potências de mesma base, somamos os expoentes: 3 + 2 = 5."],["Calcule 10⁴ ÷ 10².","100",["10","1.000","10.000"],"10⁴ ÷ 10² = 10² = 100."],["Calcule (2³)².","64",["32","16","12"],"Potência de potência: multiplicamos os expoentes. (2³)² = 2⁶ = 64."],["Qual é o valor de 7⁰?","1",["0","7","70"],"Toda base não nula elevada a zero é igual a 1."],["Calcule 4² − 2³.","8",["12","4","16"],"4² − 2³ = 16 − 8 = 8."],["Calcule 2³ × 3².","72",["36","64","54"],"2³ = 8 e 3² = 9; então 8 × 9 = 72."],["Escreva 3 × 3 × 3 × 3 na forma de potência.","3⁴",["4³","3³","12¹"],"O fator 3 aparece quatro vezes, portanto a potência é 3⁴."],["Calcule 6² ÷ 3².","4",["2","12","9"],"6² ÷ 3² = 36 ÷ 9 = 4."]],"10":[["Calcule −7 + 12.","5",["−5","19","−19"],"−7 + 12 = 5."],["Calcule −4 − 9.","−13",["5","13","−5"],"Partindo de −4 e subtraindo 9, chegamos a −13."],["Calcule 3/4 + 1/4.","1",["4/8","1/2","3/8"],"3/4 + 1/4 = 4/4 = 1."],["Qual fração representa 0,6 na forma irredutível?","3/5",["6/100","1/6","2/5"],"0,6 = 6/10. Simplificando por 2, obtemos 3/5."],["Calcule 2/3 × 3/4.","1/2",["5/7","6/7","2/4"],"Multiplicamos numeradores e denominadores: 6/12 = 1/2."],["Calcule 5/6 − 1/3.","1/2",["4/3","2/3","1/3"],"1/3 = 2/6; então 5/6 − 2/6 = 3/6 = 1/2."],["Qual número é inteiro e também natural?","8",["−8","2/3","1,5"],"8 é natural e, por isso, também é inteiro."],["Calcule (−3) × 4.","−12",["12","−7","7"],"Número negativo vezes positivo resulta em negativo: 3 × 4 = 12."],["Qual é o valor de 1,25 + 0,75?","2",["1,5","2,5","1"],"1,25 + 0,75 = 2,00."],["Qual destes números é racional?","−7/9",["√5","π","√3"],"−7/9 é uma razão entre dois inteiros, com denominador diferente de zero."]],"11":[["Se A = {1, 2, 3} e B = {3, 4, 5}, qual é A ∩ B?","{3}",["{1,2,3,4,5}","{1,2}","{4,5}"],"A interseção reúne os elementos comuns aos dois conjuntos: apenas 3."],["Se A = {1, 2} e B = {2, 3}, qual é A ∪ B?","{1, 2, 3}",["{2}","{1,3}","{1,2,2,3}"],"A união reúne todos os elementos sem repetir: 1, 2 e 3."],["A = {a, b, c}. Quantos elementos há em A?","3",["2","4","6"],"Os elementos são a, b e c: portanto, n(A) = 3."],["A = {2, 4, 6, 8}. O número 5 pertence a A?","Não",["Sim","Somente se for par","Não é possível saber"],"5 não aparece no conjunto A, logo 5 ∉ A."],["Se A = {1, 2, 3, 4}, qual é o complemento de B = {2, 4} em A?","{1, 3}",["{2,4}","{1,2,3,4}","{3,4}"],"Retirando de A os elementos de B, sobram 1 e 3."],["Se A = {1, 2} e B = {1, 2, 3}, A é subconjunto de B?","Sim",["Não","Somente se B tiver dois elementos","Somente se A for vazio"],"Todos os elementos de A também pertencem a B."],["Em uma turma de 20 alunos, 12 gostam de futebol, 9 de vôlei e 5 dos dois. Quantos gostam de pelo menos um?","16",["21","26","7"],"Pelo princípio da inclusão-exclusão: 12 + 9 − 5 = 16."],["A = {2, 4, 6} e B = {1, 3, 5}. Qual é A ∩ B?","∅",["{2}","{1,2,3,4,5,6}","{6}"],"Não há elementos em comum, então a interseção é o conjunto vazio."],["Um conjunto possui 4 elementos. Quantos subconjuntos ele tem?","16",["4","8","12"],"Um conjunto com n elementos possui 2ⁿ subconjuntos: 2⁴ = 16."],["A = {x | x é número natural entre 1 e 5}. Qual é A?","{2, 3, 4}",["{1,2,3,4,5}","{1,5}","{0,1,2,3,4,5}"],"Entre 1 e 5, sem incluir os extremos, estão 2, 3 e 4."]],"12":[["Calcule √49.","7",["6","8","24"],"A raiz quadrada de 49 é 7, pois 7 × 7 = 49."],["Qual é o maior número: −2, 0 ou −5?","0",["−2","−5","Todos são iguais"],"Na reta real, 0 fica à direita dos números negativos."],["Entre quais inteiros consecutivos está √20?","4 e 5",["3 e 4","5 e 6","2 e 3"],"Como 4² = 16 e 5² = 25, √20 está entre 4 e 5."],["Calcule |−13|.","13",["−13","0","1"],"O módulo é a distância até zero, portanto |−13| = 13."],["Ordene −3, 2, −1 e 0 do menor para o maior.","−3, −1, 0, 2",["2, 0, −1, −3","−1, −3, 0, 2","−3, 0, −1, 2"],"Na reta numérica, os valores crescem da esquerda para a direita."],["Calcule 1/2 + 0,25.","0,75",["0,5","1,25","0,3"],"1/2 = 0,5; então 0,5 + 0,25 = 0,75."],["Qual número está entre 2,4 e 2,5?","2,45",["2,35","2,51","2,6"],"2,45 é maior que 2,4 e menor que 2,5."],["Calcule 3 − 2 × 5.","−7",["5","−10","−1"],"Primeiro a multiplicação: 2 × 5 = 10; depois 3 − 10 = −7."],["Qual é a aproximação de √2 com duas casas decimais?","1,41",["1,20","1,50","2,00"],"√2 é aproximadamente 1,414..., que arredondado para duas casas é 1,41."],["Calcule (−2)² − 5.","−1",["−9","9","1"],"Primeiro (−2)² = 4; depois 4 − 5 = −1."]],"13":[["Determine o MDC de 18 e 12.","6",["3","12","36"],"Pelas subtrações: 18 − 12 = 6; 12 − 6 = 6. O MDC é 6."],["Determine o MDC de 30 e 18.","6",["3","9","12"],"30 − 18 = 12; 18 − 12 = 6; 12 − 6 = 6. Logo, MDC = 6."],["Determine o MDC de 24 e 16.","8",["4","6","12"],"24 − 16 = 8; 16 − 8 = 8. O MDC é 8."],["Determine o MDC de 35 e 15.","5",["10","15","3"],"35 − 15 = 20; 20 − 15 = 5; 15 − 5 = 10; 10 − 5 = 5."],["Determine o MDC de 42 e 28.","14",["7","6","21"],"42 − 28 = 14; 28 − 14 = 14. Portanto, MDC = 14."],["Determine o MDC de 27 e 9.","9",["3","18","27"],"27 − 9 = 18; 18 − 9 = 9. O MDC é 9."],["Determine o MDC de 48 e 32.","16",["8","12","24"],"48 − 32 = 16; 32 − 16 = 16. O MDC é 16."],["Determine o MDC de 45 e 30.","15",["5","10","30"],"45 − 30 = 15; 30 − 15 = 15. O MDC é 15."],["Determine o MDC de 56 e 21.","7",["14","3","28"],"56 − 21 = 35; 35 − 21 = 14; 21 − 14 = 7; 14 − 7 = 7."],["Uma professora tem 36 lápis e 48 borrachas. Qual o maior número de kits iguais, sem sobras, que pode montar?","12",["6","8","18"],"O maior número de kits é o MDC(36,48) = 12. Cada kit terá 3 lápis e 4 borrachas."]],"14":[["Se 3 cadernos custam R$ 18, quanto custam 5 cadernos pelo mesmo preço unitário?","R$ 30",["R$ 24","R$ 33","R$ 36"],"Cada caderno custa 18 ÷ 3 = R$ 6; cinco custam 5 × 6 = R$ 30."],["Resolva a proporção 2/5 = x/20.","8",["5","10","12"],"Multiplicando em cruz: 5x = 40; logo x = 8."],["Uma receita usa 2 xícaras para 4 pessoas. Quantas xícaras para 10 pessoas?","5",["4","6","8"],"A razão é 2/4 = 0,5 xícara por pessoa; 10 × 0,5 = 5."],["Em um mapa, 1 cm representa 5 km. Quantos km representam 7 cm?","35 km",["12 km","30 km","40 km"],"7 × 5 = 35 km."],["Uma camiseta de R$ 80 teve desconto de 25%. Qual o preço final?","R$ 60",["R$ 55","R$ 65","R$ 75"],"25% de 80 = 20; então 80 − 20 = R$ 60."],["Se 4 máquinas produzem 200 peças, quantas peças 6 máquinas produzem no mesmo tempo e ritmo?","300",["250","400","600"],"Grandezas diretamente proporcionais: 200 × 6 ÷ 4 = 300."],["Resolva x/12 = 5/6.","10",["8","9","12"],"x = 12 × 5/6 = 10."],["Um produto de R$ 150 aumentou 10%. Qual é o novo preço?","R$ 165",["R$ 155","R$ 160","R$ 175"],"10% de 150 = 15; 150 + 15 = R$ 165."],["A razão entre meninos e meninas é 3:4. Se há 21 meninos, quantas meninas há?","28",["24","25","32"],"3 partes correspondem a 21, então cada parte vale 7; meninas: 4 × 7 = 28."],["Um carro percorre 180 km com 15 litros. Quantos km percorre com 20 litros, mantendo o consumo?","240 km",["200 km","220 km","260 km"],"180 ÷ 15 = 12 km/L; 12 × 20 = 240 km."]],"15":[["4 trabalhadores fazem um serviço em 6 dias. Em quantos dias 8 trabalhadores fariam o mesmo serviço, no mesmo ritmo?","3 dias",["12 dias","4 dias","6 dias"],"Mais trabalhadores reduzem o tempo: 4 × 6 = 8 × x; x = 3."],["3 máquinas produzem 90 peças em 2 horas. Quantas peças 5 máquinas produzem em 4 horas?","300",["180","240","360"],"A produção é direta nas máquinas e no tempo: 90 × (5/3) × (4/2) = 300."],["6 torneiras iguais enchem um reservatório em 5 horas. Quanto tempo 10 torneiras levam?","3 horas",["8 horas","4 horas","5 horas"],"Torneiras e tempo são inversamente proporcionais: 6 × 5 = 10 × x; x = 3."],["8 pessoas consomem 24 litros de água em 2 dias. Quantos litros 12 pessoas consomem em 5 dias?","90 litros",["60 litros","72 litros","120 litros"],"Consumo é direto nas pessoas e nos dias: 24 × (12/8) × (5/2) = 90."],["4 impressoras imprimem 800 páginas em 5 minutos. Quantas páginas 6 impressoras imprimem em 10 minutos?","2.400",["1.200","1.600","3.200"],"A produção cresce com impressoras e tempo: 800 × (6/4) × (10/5) = 2.400."],["12 operários constroem um muro em 15 dias. Quantos dias 20 operários levariam, no mesmo ritmo?","9 dias",["10 dias","12 dias","25 dias"],"Grandezas inversas: 12 × 15 = 20 × x; x = 9."],["2 bombas esvaziam um tanque em 9 horas. Quanto tempo 3 bombas iguais levam?","6 horas",["12 horas","9 horas","4 horas"],"Mais bombas reduzem o tempo: 2 × 9 = 3 × x; x = 6."],["5 caminhões transportam 100 toneladas em 4 viagens. Quantas toneladas 8 caminhões transportam em 3 viagens?","120 toneladas",["100 toneladas","150 toneladas","180 toneladas"],"Direta em caminhões e viagens: 100 × (8/5) × (3/4) = 120."],["6 funcionários trabalhando 4 horas por dia concluem uma tarefa em 10 dias. Em quantos dias 8 funcionários trabalhando 5 horas por dia concluem a mesma tarefa?","6 dias",["8 dias","10 dias","12 dias"],"Trabalho fixo: 6 × 4 × 10 = 8 × 5 × x; x = 6."],["3 máquinas, trabalhando 6 horas por dia durante 4 dias, produzem 720 peças. Quantas peças 5 máquinas produzem em 6 horas por dia durante 3 dias?","900",["750","1.200","1.500"],"Produção é direta nas três grandezas: 720 × (5/3) × (6/6) × (3/4) = 900."]],"16":[["Simplifique √50.","5√2",["25√2","10√5","2√5"],"√50 = √(25 × 2) = 5√2."],["Calcule √9 + √16.","7",["5","25","12"],"√9 = 3 e √16 = 4; 3 + 4 = 7."],["Calcule √3 × √12.","6",["√15","3","12"],"√3 × √12 = √36 = 6."],["Calcule √75 ÷ √3.","5",["25","√72","3"],"√75 ÷ √3 = √25 = 5."],["Simplifique 2√5 + 3√5.","5√5",["6√5","√5","5√10"],"Somamos os coeficientes: (2 + 3)√5 = 5√5."],["Simplifique √18.","3√2",["9√2","2√3","6√2"],"√18 = √(9 × 2) = 3√2."],["Calcule (√7)².","7",["√14","49","14"],"O quadrado e a raiz quadrada se anulam: (√7)² = 7."],["Calcule √8 + √18.","5√2",["√26","√10","13√2"],"√8 = 2√2 e √18 = 3√2; a soma é 5√2."],["Simplifique √48 − √12.","2√3",["√36","3√3","4√3"],"√48 = 4√3 e √12 = 2√3; a diferença é 2√3."],["Calcule √5 × √20.","10",["5","√25","20"],"√5 × √20 = √100 = 10."]],"17":[["Uma função é f(x) = 2x. Qual é a imagem de 3?","6",["5","9","2"],"Substituímos x por 3: f(3) = 2 × 3 = 6."],["Se f(x) = x + 4, calcule f(5).","9",["20","1","8"],"f(5) = 5 + 4 = 9."],["A função f(x) = 3x − 1 recebe x = 2. Qual é a saída?","5",["6","4","7"],"f(2) = 3 × 2 − 1 = 5."],["Se f(x) = x², qual é f(−3)?","9",["−9","6","−6"],"f(−3) = (−3)² = 9."],["Na função f(x) = 10 − x, qual entrada produz saída 4?","6",["14","4","10"],"10 − x = 4; então x = 6."],["Se f(x) = 2x + 1, calcule f(0).","1",["0","2","3"],"f(0) = 2 × 0 + 1 = 1."],["Na relação y = 5x, qual é y quando x = 4?","20",["9","15","25"],"y = 5 × 4 = 20."],["Se f(x) = x/2, qual é a imagem de 12?","6",["24","10","14"],"f(12) = 12 ÷ 2 = 6."],["Na função f(x) = x − 7, qual x gera f(x) = 0?","7",["0","−7","1"],"x − 7 = 0, portanto x = 7."],["Se f(x) = 4x, qual entrada tem imagem 28?","7",["6","8","24"],"4x = 28; dividindo por 4, x = 7."]],"18":[["Para y = 2x + 3, calcule y quando x = 4.","11",["8","10","14"],"y = 2 × 4 + 3 = 11."],["Se y = 5x − 2, qual é y para x = 3?","13",["15","8","17"],"y = 5 × 3 − 2 = 13."],["Na função y = 3x, qual x corresponde a y = 21?","7",["6","18","24"],"3x = 21; logo x = 7."],["Uma corrida custa R$ 6 fixos mais R$ 2 por quilômetro. Qual o custo de 5 km?","R$ 16",["R$ 10","R$ 12","R$ 18"],"Custo = 6 + 2 × 5 = R$ 16."],["Se y = −2x + 8, calcule y para x = 2.","4",["12","6","−4"],"y = −2 × 2 + 8 = 4."],["Uma função é f(x) = 4x − 5. Calcule f(3).","7",["12","−2","17"],"f(3) = 4 × 3 − 5 = 7."],["Qual é a raiz (zero) da função y = 2x − 10?","5",["10","−5","2"],"No zero da função, y = 0: 2x − 10 = 0; x = 5."],["Uma reta passa por (0, 4) e (2, 8). Qual é a variação de y quando x aumenta 2 unidades?","4",["2","6","8"],"y passa de 4 para 8; a variação é 8 − 4 = 4."],["Na função y = x + 6, qual é o valor de y quando x = −2?","4",["8","−8","−4"],"y = −2 + 6 = 4."],["Uma função afim tem lei y = 3x + 2. Qual é o ponto quando x = 1?","(1, 5)",["(1, 3)","(1, 2)","(5, 1)"],"Para x = 1, y = 3 × 1 + 2 = 5; o ponto é (1,5)."]],"19":[["Simplifique (x² − 9)/(x − 3), com x ≠ 3.","x + 3",["x − 3","x² + 3","x + 9"],"Fatoramos x² − 9 = (x − 3)(x + 3) e cancelamos x − 3."],["Para x = 2, calcule (x + 4)/2.","3",["2","4","6"],"(2 + 4)/2 = 6/2 = 3."],["Qual valor de x não pode ser usado em 5/(x − 4)?","4",["0","−4","5"],"O denominador não pode ser zero: x − 4 = 0 quando x = 4."],["Simplifique 6x/9.","2x/3",["3x/2","6x/3","2x/9"],"Dividimos numerador e denominador por 3."],["Calcule (x/3) + (x/6).","x/2",["2x/9","x/9","x"],"MMC dos denominadores é 6: 2x/6 + x/6 = 3x/6 = x/2."],["Para x = 3, calcule (x² − 1)/(x + 1).","2",["4","8","1"],"(9 − 1)/(3 + 1) = 8/4 = 2."],["Simplifique (x² + 5x)/x, com x ≠ 0.","x + 5",["x² + 5","5x","x + 5x"],"Colocando x em evidência: x(x + 5)/x = x + 5."],["Calcule 2/(x) + 1/(x), para x = 5.","0,6",["0,2","1,5","3"],"2/5 + 1/5 = 3/5 = 0,6."],["Simplifique (x² − 4)/(x + 2), com x ≠ −2.","x − 2",["x + 2","x² − 2","x − 4"],"x² − 4 = (x − 2)(x + 2); cancelamos x + 2."],["Para x = 2, calcule (3x + 6)/(x + 2).","3",["2","4","6"],"(6 + 6)/(2 + 2) = 12/4 = 3."]],"20":[["Determine o MMC de 6x² e 9x³.","18x³",["54x⁵","18x²","3x³"],"MMC dos coeficientes 6 e 9 é 18; usamos o maior expoente de x, que é 3."],["Determine o MMC de 4a e 6a².","12a²",["24a³","12a","2a²"],"MMC(4,6) = 12 e o maior expoente de a é 2."],["Qual é o MMC de x² − 4 e x − 2?","(x − 2)(x + 2)",["x − 2","(x − 2)²","x² + 2"],"x² − 4 = (x − 2)(x + 2); essa expressão já contém o fator x − 2."],["Determine o MMC de 3x e 5y.","15xy",["8xy","15x","15y"],"Como não há fatores literais comuns, multiplicamos 3 × 5 × x × y."],["Determine o MMC de 8x²y e 12xy³.","24x²y³",["96x³y⁴","24xy","4x²y³"],"MMC(8,12)=24; maior expoente de x é 2 e de y é 3."],["Qual denominador comum mínimo pode ser usado para 1/(2x) e 1/(3x²)?","6x²",["5x³","6x","x²"],"MMC de 2x e 3x²: 6x²."],["Determine o MMC de 2a²b e 3ab³.","6a²b³",["6ab","5a²b³","6a³b⁴"],"MMC dos coeficientes é 6; maiores expoentes: a² e b³."],["Qual é o MMC de x² e x⁴?","x⁴",["x⁶","x²","2x⁴"],"Para potências da mesma base, escolhemos o maior expoente."],["Determine o MMC de 10m² e 15m.","30m²",["150m³","30m","5m²"],"MMC(10,15)=30 e o maior expoente de m é 2."],["Qual o MMC de 4x²y e 6xy²?","12x²y²",["24x³y³","12xy","2x²y²"],"MMC(4,6)=12; usamos x² e y²."]],"21":[["Na função y = 2x + 1, qual é o valor de y quando x = 3?","7",["5","6","8"],"y = 2 × 3 + 1 = 7."],["Qual é o coeficiente angular da função y = −3x + 5?","−3",["5","3","−5"],"Na forma y = ax + b, o coeficiente angular é a = −3."],["Onde a reta y = 4x − 6 cruza o eixo y?","(0, −6)",["(−6, 0)","(0, 4)","(4, −6)"],"No eixo y, x = 0; y = −6."],["Qual é a raiz da função y = 5x − 15?","3",["5","15","−3"],"Fazemos y = 0: 5x − 15 = 0; x = 3."],["A função y = −2x + 4 é crescente ou decrescente?","Decrescente",["Crescente","Constante","Não é uma reta"],"Como o coeficiente angular é negativo, a função é decrescente."],["Qual ponto pertence à reta y = x + 2?","(3, 5)",["(3, 4)","(2, 5)","(5, 2)"],"Substituindo x = 3: y = 3 + 2 = 5."],["Uma reta passa por (0, 2) e (1, 5). Qual é seu coeficiente angular?","3",["2","5","7"],"a = (5 − 2)/(1 − 0) = 3."],["Na função y = 3x − 9, qual é o intercepto no eixo x?","(3, 0)",["(0, 3)","(9, 0)","(0, −9)"],"No eixo x, y = 0: 3x − 9 = 0; x = 3."],["Se y = 2x + 4, quais são os valores de y para x = 0 e x = 2?","4 e 8",["0 e 4","2 e 6","4 e 6"],"Para x = 0, y = 4; para x = 2, y = 8."],["Uma função afim tem coeficiente angular 4 e linear −1. Qual é sua lei?","y = 4x − 1",["y = −x + 4","y = 4 − x","y = x − 4"],"Na forma y = ax + b, a = 4 e b = −1."]]};
+function makeQuestion(i, topic=current){
+ if(topic.subject==="Matemática"){
+  const item=mathExercises[topic.id][i%10];
+  const choices=[{text:item[1],ok:true},...item[2].map(text=>({text,ok:false}))];
+  let seed=(topic.id+1)*131+i*47;
+  for(let k=choices.length-1;k>0;k--){seed=(seed*9301+49297)%233280;let j=Math.floor(seed/233280*(k+1));[choices[k],choices[j]]=[choices[j],choices[k]]}
+  return {prompt:item[0],choices,explanation:item[3]};
+ }
+ const facts=topic.facts, target=facts[i%facts.length], mode=i%4;
+ const prompts=[
+  `Qual conceito corresponde à definição: “${target[1]}”?`,
+  `Leia o exemplo: “${target[2]}”. Qual conceito está sendo ilustrado?`,
+  `Qual alternativa apresenta corretamente a ideia de ${target[0]}?`,
+  `Em uma questão sobre ${current.title.toLowerCase()}, qual descrição está correta para ${target[0]}?`
+ ];
+ const correct=mode===2||mode===3?target[1]:target[0];
+ let distractors=facts.filter(f=>f!==target).map(f=>mode===2||mode===3?f[1]:f[0]);
+ // Add plausible neighboring concepts from the same lesson; keep four choices.
+ while(distractors.length<3)distractors.push("um conceito diferente, que não corresponde à definição apresentada");
+ const choices=[{text:correct,ok:true},...distractors.slice(0,3).map(text=>({text,ok:false}))];
+ // Deterministic shuffle per question
+ let seed=(current.id+1)*97+i*31;for(let k=choices.length-1;k>0;k--){seed=(seed*9301+49297)%233280;let j=Math.floor(seed/233280*(k+1));[choices[k],choices[j]]=[choices[j],choices[k]]}
+ return {prompt:prompts[mode],choices,explanation:`${target[0]}: ${target[1]}. Exemplo: ${target[2]}`};
+}
+let activeQuestion=null;
+function renderQuestion(){
+ selected=false;
+ if(simMode){
+  current=simQuestions[qIndex].topic;
+  activeQuestion=makeQuestion(simQuestions[qIndex].localIndex,current);
+  document.getElementById("subjectLabel").textContent="Simulado • "+current.subject;
+  document.getElementById("topicLabel").textContent=current.title;
+  document.getElementById("counter").textContent=`Questão ${qIndex+1} de 45`;
+  document.getElementById("lessonProgress").style.width=(qIndex/45*100)+"%";
+ }else{
+  activeQuestion=makeQuestion(qIndex,current);
+  document.getElementById("subjectLabel").textContent=current.subject;
+  document.getElementById("topicLabel").textContent=current.title;
+  document.getElementById("counter").textContent=`Questão ${qIndex+1} de 10`;
+  document.getElementById("lessonProgress").style.width=(qIndex/10*100)+"%";
+ }
+ document.getElementById("question").textContent=activeQuestion.prompt;
+ const opts=document.getElementById("options");opts.innerHTML="";
+ activeQuestion.choices.forEach((c,n)=>{const b=document.createElement("button");b.className="option";b.textContent=String.fromCharCode(65+n)+") "+c.text;b.onclick=()=>choose(n,b);opts.appendChild(b)});
+ const fb=document.getElementById("feedback");fb.className="feedback hidden";fb.textContent="";
+ document.getElementById("next").disabled=true;document.getElementById("next").textContent=(simMode?qIndex===44:qIndex===9)?"Ver resultado":"Continuar";
+}
+function choose(n,btn){
+ if(selected)return;selected=true;let c=activeQuestion.choices[n];const buttons=[...document.querySelectorAll(".option")];buttons.forEach((b,i)=>{b.disabled=true;if(activeQuestion.choices[i].ok)b.classList.add("correct")});if(!c.ok)btn.classList.add("wrong");
+ const fb=document.getElementById("feedback");fb.className="feedback "+(c.ok?"good":"bad");fb.innerHTML=(c.ok?"<strong>Correto! +10 XP</strong><br>":"<strong>Não foi dessa vez.</strong><br>")+"<span></span>";fb.querySelector("span").textContent=activeQuestion.explanation;
+ document.getElementById("next").disabled=false;
+ let p=progress[current.id]||{answered:0,correct:0,xp:0,completed:false};p.answered++;if(c.ok){p.correct++;p.xp+=10;score+=10;sessionHits++}
+ progress[current.id]=p;
+ if(simMode){simBreakdown[current.subject]=simBreakdown[current.subject]||{total:0,correct:0};simBreakdown[current.subject].total++;if(c.ok)simBreakdown[current.subject].correct++}
+ save();stats();
+}
+document.getElementById("next").onclick=()=>{if(!selected)return;let last=simMode?44:9;if(qIndex<last){qIndex++;renderQuestion()}else finish()};
+function finish(){
+ if(!simMode){let p=progress[current.id];p.completed=true}
+ save();stats();show("finish");
+ if(simMode){
+  document.getElementById("resultText").textContent=`Simulado concluído: você acertou ${sessionHits} de 45 questões e conquistou ${score} XP.`;
+  document.getElementById("resultDetail").textContent=["Português","Matemática","Atualidades"].map(s=>`${s}: ${simBreakdown[s]?.correct||0}/15`).join(" • ")+". "+(sessionHits>=36?"Excelente resultado!":sessionHits>=23?"Bom trabalho! Revise os assuntos com menor pontuação.":"Use o resultado para identificar o que precisa estudar novamente.");
+ }else{
+  document.getElementById("resultText").textContent=`Você acertou ${sessionHits} de 10 questões e conquistou ${score} XP nesta unidade.`;
+  document.getElementById("resultDetail").textContent=sessionHits>=8?"Excelente desempenho! Continue avançando.":sessionHits>=5?"Bom trabalho! Uma revisão pode consolidar o conteúdo.":"Vale revisar a teoria e tentar novamente. Errar faz parte do aprendizado.";
+ }
+}
+document.getElementById("quit").onclick=()=>{simMode=false;show("home");renderTopics()};
+document.getElementById("backHome").onclick=()=>{simMode=false;show("home");renderTopics()};
+document.getElementById("review").onclick=()=>{if(simMode)startMock();else start(current.id)};
+function startMock(){
+ simMode=true;qIndex=0;score=0;sessionHits=0;simBreakdown={};simQuestions=[];
+ const subjects=["Português","Matemática","Atualidades"];
+ subjects.forEach(subject=>{
+  const topics=bank.filter(t=>t.subject===subject);
+  for(let i=0;i<15;i++){
+   const topic=topics[i%topics.length];
+   simQuestions.push({topic,localIndex:i});
+  }
+ });
+ // Embaralha as questões para misturar as três matérias.
+ for(let i=simQuestions.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[simQuestions[i],simQuestions[j]]=[simQuestions[j],simQuestions[i]]}
+ show("study");renderQuestion();
+}
+document.getElementById("startMock").onclick=startMock;
+stats();renderTopics();
+</script>
+</body></html>
